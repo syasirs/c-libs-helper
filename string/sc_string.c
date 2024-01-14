@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sc_str.h"
+#include "sc_string.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -47,40 +47,40 @@
  *  User can keep pointer to first character, so it's like C style strings with
  *  additional functionality when it's used with these functions here.
  */
-struct sc_str {
+struct sc_string {
 	uint32_t len;
 	char buf[];
 };
 
-#define sc_str_meta(str)                                                       \
-	((struct sc_str *) ((char *) (str) -offsetof(struct sc_str, buf)))
+#define sc_string_meta(str)                                                       \
+	((struct sc_string *) ((char *) (str) -offsetof(struct sc_string, buf)))
 
-#define sc_str_bytes(n) ((n) + sizeof(struct sc_str) + 1)
+#define sc_string_bytes(n) ((n) + sizeof(struct sc_string) + 1)
 
-#ifndef SC_STR_MAX
-#define SC_STR_MAX (UINT32_MAX - sizeof(struct sc_str) - 1)
+#ifndef struct sc_str
+#define SC_STRING_MAX (UINT32_MAX - sizeof(struct sc_string) - 1)
 #endif
 
-char *sc_str_create(const char *str)
+char *sc_string_create(const char *str)
 {
 	size_t len;
 
-	if (str == NULL || (len = strlen(str)) > SC_STR_MAX) {
+	if (str == NULL || (len = strlen(str)) > sc_string_MAX) {
 		return NULL;
 	}
 
-	return sc_str_create_len(str, (uint32_t) len);
+	return sc_string_create_len(str, (uint32_t) len);
 }
 
-char *sc_str_create_len(const char *str, uint32_t len)
+char *sc_string_create_len(const char *str, uint32_t len)
 {
-	struct sc_str *c;
+	struct sc_string *c;
 
 	if (str == NULL) {
 		return NULL;
 	}
 
-	c = sc_str_malloc(sc_str_bytes(len));
+	c = sc_string_malloc(sc_string_bytes(len));
 	if (c == NULL) {
 		return NULL;
 	}
@@ -92,11 +92,11 @@ char *sc_str_create_len(const char *str, uint32_t len)
 	return c->buf;
 }
 
-char *sc_str_create_va(const char *fmt, va_list va)
+char *sc_string_create_va(const char *fmt, va_list va)
 {
 	int rc;
 	char tmp[1024];
-	struct sc_str *str;
+	struct sc_string *str;
 	va_list args;
 
 	va_copy(args, va);
@@ -107,7 +107,7 @@ char *sc_str_create_va(const char *fmt, va_list va)
 	}
 	va_end(args);
 
-	str = sc_str_malloc(sc_str_bytes(rc));
+	str = sc_string_malloc(sc_string_bytes(rc));
 	if (str == NULL) {
 		return NULL;
 	}
@@ -122,7 +122,7 @@ char *sc_str_create_va(const char *fmt, va_list va)
 		va_end(args);
 
 		if (rc < 0 || (uint32_t) rc > str->len) {
-			sc_str_free(str);
+			sc_string_free(str);
 			return NULL;
 		}
 	}
@@ -130,97 +130,97 @@ char *sc_str_create_va(const char *fmt, va_list va)
 	return str->buf;
 }
 
-char *sc_str_create_fmt(const char *fmt, ...)
+char *sc_string_create_fmt(const char *fmt, ...)
 {
 	char *str;
 	va_list args;
 
 	va_start(args, fmt);
-	str = sc_str_create_va(fmt, args);
+	str = sc_string_create_va(fmt, args);
 	va_end(args);
 
 	return str;
 }
 
-void sc_str_destroy(char **str)
+void sc_string_destroy(char **str)
 {
 	if (str == NULL || *str == NULL) {
 		return;
 	}
 
-	sc_str_free(sc_str_meta(*str));
+	sc_string_free(sc_string_meta(*str));
 	*str = NULL;
 }
 
-int64_t sc_str_len(const char *str)
+int64_t sc_string_len(const char *str)
 {
 	if (str == NULL) {
 		return -1;
 	}
 
-	return sc_str_meta(str)->len;
+	return sc_string_meta(str)->len;
 }
 
-char *sc_str_dup(const char *str)
+char *sc_string_dup(const char *str)
 {
-	struct sc_str *m;
+	struct sc_string *m;
 
 	if (str == NULL) {
 		return NULL;
 	}
 
-	m = sc_str_meta(str);
-	return sc_str_create_len(str, m->len);
+	m = sc_string_meta(str);
+	return sc_string_create_len(str, m->len);
 }
 
-bool sc_str_set(char **str, const char *param)
+bool sc_string_set(char **str, const char *param)
 {
 	char *c;
 
-	c = sc_str_create(param);
+	c = sc_string_create(param);
 	if (c == NULL) {
 		return false;
 	}
 
-	sc_str_destroy(str);
+	sc_string_destroy(str);
 	*str = c;
 
 	return true;
 }
 
-bool sc_str_set_fmt(char **str, const char *fmt, ...)
+bool sc_string_set_fmt(char **str, const char *fmt, ...)
 {
 	char *ret;
 	va_list args;
 
 	va_start(args, fmt);
-	ret = sc_str_create_va(fmt, args);
+	ret = sc_string_create_va(fmt, args);
 	va_end(args);
 
 	if (ret != NULL) {
-		sc_str_destroy(str);
+		sc_string_destroy(str);
 		*str = ret;
 	}
 
 	return ret != NULL;
 }
 
-bool sc_str_append(char **str, const char *param)
+bool sc_string_append(char **str, const char *param)
 {
 	size_t len, alloc;
-	struct sc_str *m;
+	struct sc_string *m;
 
 	if (*str == NULL) {
-		*str = sc_str_create(param);
+		*str = sc_string_create(param);
 		return *str != NULL;
 	}
 
-	m = sc_str_meta(*str);
+	m = sc_string_meta(*str);
 	len = strlen(param);
-	alloc = sc_str_bytes(m->len + len);
+	alloc = sc_string_bytes(m->len + len);
 
-	if (len > SC_STR_MAX - m->len ||
-	    (m = sc_str_realloc(m, alloc)) == NULL) {
+	if (len > SC_STRING_MAX - m->len ||
+	    (m = sc_string_realloc(m, alloc)) == NULL) {
 		return false;
 	}
 
@@ -232,10 +232,10 @@ bool sc_str_append(char **str, const char *param)
 	return true;
 }
 
-bool sc_str_cmp(const char *str, const char *other)
+bool sc_string_cmp(const char *str, const char *other)
 {
-	struct sc_str *s1 = sc_str_meta(str);
-	struct sc_str *s2 = sc_str_meta(other);
+	struct sc_string *s1 = sc_string_meta(str);
+	struct sc_string *s2 = sc_string_meta(other);
 
 	return s1->len == s2->len && !memcmp(s1->buf, s2->buf, s1->len);
 }
@@ -243,14 +243,14 @@ bool sc_str_cmp(const char *str, const char *other)
 static void swap(char *str, char *d)
 {
 	char tmp;
-	char *c = str + sc_str_meta(str)->len;
+	char *c = str + sc_string_meta(str)->len;
 
 	tmp = *c;
 	*c = *d;
 	*d = tmp;
 }
 
-const char *sc_str_token_begin(char *str, char **save, const char *delim)
+const char *sc_string_token_begin(char *str, char **save, const char *delim)
 {
 	char *it = str;
 
@@ -273,7 +273,7 @@ const char *sc_str_token_begin(char *str, char **save, const char *delim)
 	return it;
 }
 
-void sc_str_token_end(char *str, char **save)
+void sc_string_token_end(char *str, char **save)
 {
 	char *end;
 
@@ -281,7 +281,7 @@ void sc_str_token_end(char *str, char **save)
 		return;
 	}
 
-	end = str + sc_str_meta(str)->len;
+	end = str + sc_string_meta(str)->len;
 	if (*end == '\0') {
 		return;
 	}
@@ -289,7 +289,7 @@ void sc_str_token_end(char *str, char **save)
 	swap(str, *save);
 }
 
-bool sc_str_trim(char **str, const char *list)
+bool sc_string_trim(char **str, const char *list)
 {
 	uint32_t diff;
 	size_t len;
@@ -299,7 +299,7 @@ bool sc_str_trim(char **str, const char *list)
 		return true;
 	}
 
-	len = sc_str_meta(*str)->len;
+	len = sc_string_meta(*str)->len;
 	head = *str + strspn(*str, list);
 	end = (*str) + len;
 
@@ -313,51 +313,51 @@ bool sc_str_trim(char **str, const char *list)
 
 	if (head != *str || end != (*str) + len) {
 		diff = (uint32_t) (end - head);
-		head = sc_str_create_len(head, diff);
+		head = sc_string_create_len(head, diff);
 		if (head == NULL) {
 			return false;
 		}
 
-		sc_str_destroy(str);
+		sc_string_destroy(str);
 		*str = head;
 	}
 
 	return true;
 }
 
-bool sc_str_substring(char **str, uint32_t start, uint32_t end)
+bool sc_string_substring(char **str, uint32_t start, uint32_t end)
 {
 	char *c;
-	struct sc_str *meta;
+	struct sc_string *meta;
 
 	if (*str == NULL) {
 		return false;
 	}
 
-	meta = sc_str_meta(*str);
+	meta = sc_string_meta(*str);
 	if (start > meta->len || end > meta->len || start > end) {
 		return false;
 	}
 
-	c = sc_str_create_len(*str + start, end - start);
+	c = sc_string_create_len(*str + start, end - start);
 	if (c == NULL) {
 		return false;
 	}
 
-	sc_str_destroy(str);
+	sc_string_destroy(str);
 	*str = c;
 
 	return true;
 }
 
-bool sc_str_replace(char **str, const char *replace, const char *with)
+bool sc_string_replace(char **str, const char *replace, const char *with)
 {
 	assert(replace != NULL && with != NULL);
 
 	int64_t diff;
 	size_t rep_len, with_len;
 	size_t len_unmatch, count, size;
-	struct sc_str *dest, *meta;
+	struct sc_string *dest, *meta;
 	char *tmp, *orig, *orig_end;
 
 	if (*str == NULL) {
@@ -371,7 +371,7 @@ bool sc_str_replace(char **str, const char *replace, const char *with)
 		return false;
 	}
 
-	meta = sc_str_meta(*str);
+	meta = sc_string_meta(*str);
 	orig = *str;
 	orig_end = *str + meta->len;
 	diff = (int64_t) with_len - (int64_t) rep_len;
@@ -392,7 +392,7 @@ bool sc_str_replace(char **str, const char *replace, const char *with)
 	for (count = 0; (tmp = strstr(tmp, replace)) != NULL; count++) {
 		tmp += rep_len;
 		// Check overflow.
-		if ((int64_t) size > (int64_t) SC_STR_MAX - diff) {
+		if ((int64_t) size > (int64_t) SC_STRING_MAX - diff) {
 			return false;
 		}
 		size += diff;
@@ -403,7 +403,7 @@ bool sc_str_replace(char **str, const char *replace, const char *with)
 		return true;
 	}
 
-	dest = sc_str_malloc(sc_str_bytes(size));
+	dest = sc_string_malloc(sc_string_bytes(size));
 	if (!dest) {
 		return false;
 	}
@@ -424,7 +424,7 @@ bool sc_str_replace(char **str, const char *replace, const char *with)
 
 	memcpy(tmp, orig, orig_end - orig + 1);
 
-	sc_str_destroy(str);
+	sc_string_destroy(str);
 	*str = dest->buf;
 
 	return true;

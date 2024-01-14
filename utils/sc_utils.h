@@ -28,8 +28,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef SC_H
-#define SC_H
+#ifndef _SC_UTILS_H
+#define _SC_UTILS_H
 
 #include <stdbool.h>
 #include <stddef.h>
